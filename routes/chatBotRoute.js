@@ -4,6 +4,7 @@ const router = express.Router();
 require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 const courses = [
   {
     name: 'Web Development Bootcamp',
@@ -61,8 +62,32 @@ const courses = [
     description: 'A beginner’s course to understanding artificial intelligence and its applications in real-world problems.',
   },
 ];
-router.post('/', async (req, res) => {
+
+router.post('/recommend', async (req, res) => {
+  try {
+    const { interests, skillLevel, goals, learningStyle, platform, timeCommitment } = req.body;
+
+    const matchedCourses = courses.filter(course => {
+      return (
+        course.skills.some(skill => interests.toLowerCase().includes(skill.toLowerCase())) &&
+        course.skills.some(skill => skillLevel.toLowerCase().includes(skill.toLowerCase()))
+      );
+    });
+
+    const courseRecommendations = matchedCourses.length
+      ? matchedCourses.map(course => `${course.name}: ${course.description}`).join('\n')
+      : 'Sorry, no courses found matching your skills. Please try again with more details.';
+
+    res.json({ courseRecommendations });
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ reply: 'Something went wrong!' });
+  }
+});
+
+router.post('/conversation', async (req, res) => {
   const { query } = req.body;
+
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const chat = model.startChat({
@@ -81,23 +106,16 @@ router.post('/', async (req, res) => {
         temperature: 0.7,
       },
     });
+
     const result = await chat.sendMessage(query);
     const response = await result.response;
     const reply = response.text() || 'Sorry, I didn\'t get that. Could you please clarify?';
-    const userSkills = query.toLowerCase().split(' ');
-    const matchedCourses = courses.filter(course => {
-      return course.skills.some(skill => userSkills.includes(skill.toLowerCase()));
-    });
-    let courseRecommendations = matchedCourses.length
-      ? matchedCourses.map(course => `${course.name}: ${course.description}`).join('\n')
-      : 'Sorry, no courses found matching your skills. Please try again with more details.';
 
-    console.log('Gemini Response:', reply);
-    console.log('Course Recommendations:', courseRecommendations);
-    res.json({ reply, courseRecommendations });
+    res.json({ reply });
   } catch (error) {
     console.error('Gemini API Error:', error);
     res.status(500).json({ reply: 'Something went wrong!' });
   }
 });
+
 module.exports = router;
