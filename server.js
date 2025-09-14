@@ -25,7 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes); 
-app.use('api/reviews',reviewRoutes);
+app.use('/api/reviews',reviewRoutes);
 app.use('/api/chatbot',chatbotRouter);
 
 app.get("/", (req, res) => {
